@@ -4,7 +4,7 @@ import { decrypt } from './api/encryption/decrypt'
 import { encrypt } from './api/encryption/encrypt'
 import prisma from './prisma'
 import { isDefined } from './utils'
-import { OAuth2Client, Credentials } from 'google-auth-library'
+import { OAuth2Client, Credentials, TokenPayload } from 'google-auth-library'
 
 export const getAuthenticatedGoogleClient = async (
   credentialsId: string
@@ -21,6 +21,18 @@ export const getAuthenticatedGoogleClient = async (
     `${env.NEXTAUTH_URL}/api/credentials/google-sheets/callback`
   )
   oauth2Client.setCredentials(data)
+
+  // Verificação do email permitido
+  const ticket = await oauth2Client.verifyIdToken({
+    idToken: data.id_token,
+    audience: env.GOOGLE_CLIENT_ID,
+  })
+  const payload = ticket.getPayload() as TokenPayload
+  const allowedEmail = 'dys.tech.br@gmail.com'
+  if (payload.email !== allowedEmail) {
+    throw new Error('Unauthorized')
+  }
+
   oauth2Client.on('tokens', updateTokens(credentialsId, data))
   return oauth2Client
 }
