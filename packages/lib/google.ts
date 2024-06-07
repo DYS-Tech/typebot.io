@@ -23,14 +23,18 @@ export const getAuthenticatedGoogleClient = async (
   oauth2Client.setCredentials(data)
 
   // Verificação do email permitido
-  const ticket = await oauth2Client.verifyIdToken({
-    idToken: data.id_token,
-    audience: env.GOOGLE_CLIENT_ID,
-  })
-  const payload = ticket.getPayload() as TokenPayload
-  const allowedEmail = 'dys.tech.br@gmail.com'
-  if (payload.email !== allowedEmail) {
-    throw new Error('Unauthorized')
+  if ('id_token' in data) {
+    const ticket = await oauth2Client.verifyIdToken({
+      idToken: (data as any).id_token,
+      audience: env.GOOGLE_CLIENT_ID,
+    })
+    const payload = ticket.getPayload() as TokenPayload
+    const allowedEmail = 'dys.tech.br@gmail.com'
+    if (payload.email !== allowedEmail) {
+      throw new Error('Unauthorized')
+    }
+  } else {
+    throw new Error('ID token is missing in the credentials data')
   }
 
   oauth2Client.on('tokens', updateTokens(credentialsId, data))
