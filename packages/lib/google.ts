@@ -29,8 +29,10 @@ export const getAuthenticatedGoogleClient = async (
       audience: env.GOOGLE_CLIENT_ID,
     })
     const payload = ticket.getPayload() as TokenPayload
-    const allowedEmail = 'dys.tech.br@gmail.com'
-    if (payload.email !== allowedEmail) {
+
+    // Allow multiple emails
+    const allowedEmails = ['dys.tech.br@gmail.com', 'admvuala@gmail.com']
+    if (!allowedEmails.includes(payload.email ?? '')) {
       throw new Error('Unauthorized')
     }
   } else {
