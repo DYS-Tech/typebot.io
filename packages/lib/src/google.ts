@@ -27,7 +27,7 @@ export const getAuthenticatedGoogleClient = async (
   if ('id_token' in data) {
     const ticket = await oauth2Client.verifyIdToken({
       idToken: (data as any).id_token,
-      audience: env.GOOGLE_CLIENT_ID,
+      audience: env.GOOGLE_AUTH_CLIENT_ID,
     });
 
     const payload = ticket.getPayload() as TokenPayload;
