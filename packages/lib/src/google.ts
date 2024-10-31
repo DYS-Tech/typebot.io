@@ -1,7 +1,8 @@
 import { env } from "@typebot.io/env";
 import prisma from "@typebot.io/prisma";
 import type { Prisma } from "@typebot.io/prisma/types";
-import { type Credentials, OAuth2Client, TokenPayload } from "google-auth-library";
+import { OAuth2Client } from "google-auth-library";
+import type { Credentials, TokenPayload } from "google-auth-library";
 import { decrypt } from "./api/encryption/decrypt";
 import { encrypt } from "./api/encryption/encrypt";
 import { isDefined } from "./utils";
@@ -22,24 +23,24 @@ export const getAuthenticatedGoogleClient = async (
   );
   oauth2Client.setCredentials(data);
 
-    // Verificação do email permitido
-    if ('id_token' in data) {
-      const ticket = await oauth2Client.verifyIdToken({
-        idToken: (data as any).id_token,
-        audience: env.GOOGLE_CLIENT_ID,
-      })
-  
-      const payload = ticket.getPayload() as TokenPayload
-  
-      // Allow multiple emails
-      const allowedEmails: string[] = ['dys.tech.br@gmail.com', 'admvuala@gmail.com']
-  
-      if (allowedEmails.indexOf(payload.email ?? '') === -1) {
-        throw new Error('Unauthorized')
-      }
-    } else {
-      throw new Error('ID token is missing in the credentials data')
+  // Verificação do email permitido
+  if ('id_token' in data) {
+    const ticket = await oauth2Client.verifyIdToken({
+      idToken: (data as any).id_token,
+      audience: env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload() as TokenPayload;
+
+    // Allow multiple emails
+    const allowedEmails: string[] = ['dys.tech.br@gmail.com', 'admvuala@gmail.com'];
+
+    if (allowedEmails.indexOf(payload.email ?? '') === -1) {
+      throw new Error('Unauthorized');
     }
+  } else {
+    throw new Error('ID token is missing in the credentials data');
+  }
 
   oauth2Client.on("tokens", updateTokens(credentialsId, data));
   return oauth2Client;
