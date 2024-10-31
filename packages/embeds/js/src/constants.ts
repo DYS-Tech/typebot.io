@@ -1,6 +1,6 @@
-import type { BubbleProps } from './features/bubble'
-import type { PopupProps } from './features/popup'
-import type { BotProps } from './components/Bot'
+import type { BotProps } from "./components/Bot";
+import type { BubbleProps } from "./features/bubble/components/Bubble";
+import type { PopupProps } from "./features/popup/components/Popup";
 
 export const defaultBotProps: BotProps = {
   typebot: undefined,
@@ -9,13 +9,17 @@ export const defaultBotProps: BotProps = {
   onEnd: undefined,
   onInit: undefined,
   onNewLogs: undefined,
+  onChatStatePersisted: undefined,
+  onScriptExecutionSuccess: undefined,
+  font: undefined,
+  progressBarRef: undefined,
   isPreview: undefined,
   startFrom: undefined,
   prefilledVariables: undefined,
   apiHost: undefined,
   resultId: undefined,
   sessionId: undefined,
-}
+};
 
 export const defaultPopupProps: PopupProps = {
   ...defaultBotProps,
@@ -25,7 +29,7 @@ export const defaultPopupProps: PopupProps = {
   autoShowDelay: undefined,
   isOpen: undefined,
   defaultOpen: undefined,
-}
+};
 
 export const defaultBubbleProps: BubbleProps = {
   ...defaultBotProps,
@@ -35,4 +39,4 @@ export const defaultBubbleProps: BubbleProps = {
   previewMessage: undefined,
   onPreviewMessageClick: undefined,
   autoShowDelay: undefined,
-}
+};

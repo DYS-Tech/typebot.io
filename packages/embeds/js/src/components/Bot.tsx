@@ -1,78 +1,89 @@
-import { LiteBadge } from './LiteBadge'
-import { createEffect, createSignal, onCleanup, onMount, Show } from 'solid-js'
-import { isDefined, isNotDefined, isNotEmpty } from '@typebot.io/lib'
-import { startChatQuery } from '@/queries/startChatQuery'
-import { ConversationContainer } from './ConversationContainer'
-import { setIsMobile } from '@/utils/isMobileSignal'
-import { BotContext, InitialChatReply, OutgoingLog } from '@/types'
-import { ErrorMessage } from './ErrorMessage'
+import { startChatQuery } from "@/queries/startChatQuery";
+import type { BotContext, OutgoingLog } from "@/types";
+import { CorsError } from "@/utils/CorsError";
+import { setBotContainerHeight } from "@/utils/botContainerHeightSignal";
+import { setBotContainer } from "@/utils/botContainerSignal";
+import { injectFont } from "@/utils/injectFont";
+import { setIsMobile } from "@/utils/isMobileSignal";
+import { persist } from "@/utils/persist";
+import { setCssVariablesValue } from "@/utils/setCssVariablesValue";
 import {
   getExistingResultIdFromStorage,
   getInitialChatReplyFromStorage,
   setInitialChatReplyInStorage,
   setResultInStorage,
   wipeExistingChatStateInStorage,
-} from '@/utils/storage'
-import { setCssVariablesValue } from '@/utils/setCssVariablesValue'
-import immutableCss from '../assets/immutable.css'
-import { Font, InputBlock, StartFrom } from '@typebot.io/schemas'
-import { clsx } from 'clsx'
-import { HTTPError } from 'ky'
-import { injectFont } from '@/utils/injectFont'
-import { ProgressBar } from './ProgressBar'
-import { Portal } from 'solid-js/web'
-import { defaultSettings } from '@typebot.io/schemas/features/typebot/settings/constants'
-import { persist } from '@/utils/persist'
-import { setBotContainerHeight } from '@/utils/botContainerHeightSignal'
+} from "@/utils/storage";
+import { toaster } from "@/utils/toaster";
+import { Toast, Toaster } from "@ark-ui/solid";
+import type { InputBlock } from "@typebot.io/blocks-inputs/schema";
+import type {
+  StartChatResponse,
+  StartFrom,
+} from "@typebot.io/bot-engine/schemas/api";
+import { isDefined, isNotDefined, isNotEmpty } from "@typebot.io/lib/utils";
+import { defaultSettings } from "@typebot.io/settings/constants";
 import {
   defaultFontFamily,
   defaultFontType,
   defaultProgressBarPosition,
-} from '@typebot.io/schemas/features/typebot/theme/constants'
+} from "@typebot.io/theme/constants";
+import type { Font } from "@typebot.io/theme/schemas";
+import clsx from "clsx";
+import { HTTPError } from "ky";
+import { Show, createEffect, createSignal, onCleanup, onMount } from "solid-js";
+import { Portal } from "solid-js/web";
+import immutableCss from "../assets/immutable.css";
+import { ConversationContainer } from "./ConversationContainer/ConversationContainer";
+import { ErrorMessage } from "./ErrorMessage";
+import { LiteBadge } from "./LiteBadge";
+import { ProgressBar } from "./ProgressBar";
+import { CloseIcon } from "./icons/CloseIcon";
 
 export type BotProps = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  typebot: string | any
-  isPreview?: boolean
-  resultId?: string
-  prefilledVariables?: Record<string, unknown>
-  apiHost?: string
-  font?: Font
-  progressBarRef?: HTMLDivElement
-  startFrom?: StartFrom
-  sessionId?: string
-  onNewInputBlock?: (inputBlock: InputBlock) => void
-  onAnswer?: (answer: { message: string; blockId: string }) => void
-  onInit?: () => void
-  onEnd?: () => void
-  onNewLogs?: (logs: OutgoingLog[]) => void
-  onChatStatePersisted?: (isEnabled: boolean) => void
-}
+  typebot: string | any;
+  isPreview?: boolean;
+  resultId?: string;
+  prefilledVariables?: Record<string, unknown>;
+  apiHost?: string;
+  font?: Font;
+  progressBarRef?: HTMLDivElement;
+  startFrom?: StartFrom;
+  sessionId?: string;
+  onNewInputBlock?: (inputBlock: InputBlock) => void;
+  onAnswer?: (answer: { message: string; blockId: string }) => void;
+  onInit?: () => void;
+  onEnd?: () => void;
+  onNewLogs?: (logs: OutgoingLog[]) => void;
+  onChatStatePersisted?: (isEnabled: boolean) => void;
+  onScriptExecutionSuccess?: (message: string) => void;
+};
 
 export const Bot = (props: BotProps & { class?: string }) => {
   const [initialChatReply, setInitialChatReply] = createSignal<
-    InitialChatReply | undefined
-  >()
-  const [customCss, setCustomCss] = createSignal('')
-  const [isInitialized, setIsInitialized] = createSignal(false)
-  const [error, setError] = createSignal<Error | undefined>()
+    StartChatResponse | undefined
+  >();
+  const [customCss, setCustomCss] = createSignal("");
+  const [isInitialized, setIsInitialized] = createSignal(false);
+  const [error, setError] = createSignal<Error | undefined>();
 
   const initializeBot = async () => {
-    if (props.font) injectFont(props.font)
-    setIsInitialized(true)
-    const urlParams = new URLSearchParams(location.search)
-    props.onInit?.()
-    const prefilledVariables: { [key: string]: string } = {}
+    if (props.font) injectFont(props.font);
+    setIsInitialized(true);
+    const urlParams = new URLSearchParams(location.search);
+    props.onInit?.();
+    const prefilledVariables: { [key: string]: string } = {};
     urlParams.forEach((value, key) => {
-      prefilledVariables[key] = value
-    })
+      prefilledVariables[key] = value;
+    });
     const typebotIdFromProps =
-      typeof props.typebot === 'string' ? props.typebot : undefined
+      typeof props.typebot === "string" ? props.typebot : undefined;
     const isPreview =
-      typeof props.typebot !== 'string' || (props.isPreview ?? false)
-    const resultIdInStorage = getExistingResultIdFromStorage(typebotIdFromProps)
+      typeof props.typebot !== "string" || (props.isPreview ?? false);
+    const resultIdInStorage =
+      getExistingResultIdFromStorage(typebotIdFromProps);
     const { data, error } = await startChatQuery({
-      stripeRedirectStatus: urlParams.get('redirect_status') ?? undefined,
+      stripeRedirectStatus: urlParams.get("redirect_status") ?? undefined,
       typebot: props.typebot,
       apiHost: props.apiHost,
       isPreview,
@@ -83,7 +94,7 @@ export const Bot = (props: BotProps & { class?: string }) => {
       },
       startFrom: props.startFrom,
       sessionId: props.sessionId,
-    })
+    });
     if (error instanceof HTTPError) {
       if (isPreview) {
         return setError(
@@ -92,34 +103,38 @@ export const Bot = (props: BotProps & { class?: string }) => {
               status: error.response.status,
               body: await error.response.json(),
             },
-          })
-        )
+          }),
+        );
       }
       if (error.response.status === 400 || error.response.status === 403)
-        return setError(new Error('This bot is now closed.'))
+        return setError(new Error("This bot is now closed."));
       if (error.response.status === 404)
-        return setError(new Error("The bot you're looking for doesn't exist."))
+        return setError(new Error("The bot you're looking for doesn't exist."));
       return setError(
         new Error(
-          `Error! Couldn't initiate the chat. (${error.response.statusText})`
-        )
-      )
+          `Error! Couldn't initiate the chat. (${error.response.statusText})`,
+        ),
+      );
+    }
+
+    if (error instanceof CorsError) {
+      return setError(new Error(error.message));
     }
 
     if (!data) {
       if (error) {
-        console.error(error)
+        console.error(error);
         if (isPreview) {
           return setError(
             new Error(`Error! Could not reach server. Check your connection.`, {
               cause: error,
-            })
-          )
+            }),
+          );
         }
       }
       return setError(
-        new Error('Error! Could not reach server. Check your connection.')
-      )
+        new Error("Error! Could not reach server. Check your connection."),
+      );
     }
 
     if (
@@ -129,57 +144,75 @@ export const Bot = (props: BotProps & { class?: string }) => {
         defaultSettings.general.rememberUser.isEnabled)
     ) {
       if (resultIdInStorage && resultIdInStorage !== data.resultId)
-        wipeExistingChatStateInStorage(data.typebot.id)
+        wipeExistingChatStateInStorage(data.typebot.id);
       const storage =
         data.typebot.settings.general?.rememberUser?.storage ??
-        defaultSettings.general.rememberUser.storage
-      setResultInStorage(storage)(typebotIdFromProps, data.resultId)
+        defaultSettings.general.rememberUser.storage;
+      setResultInStorage(storage)(typebotIdFromProps, data.resultId);
       const initialChatInStorage = getInitialChatReplyFromStorage(
-        data.typebot.id
-      )
-      if (initialChatInStorage) {
-        setInitialChatReply(initialChatInStorage)
+        data.typebot.id,
+      );
+      if (
+        initialChatInStorage &&
+        initialChatInStorage.typebot.publishedAt &&
+        data.typebot.publishedAt
+      ) {
+        if (
+          new Date(initialChatInStorage.typebot.publishedAt).getTime() ===
+          new Date(data.typebot.publishedAt).getTime()
+        ) {
+          setInitialChatReply(initialChatInStorage);
+        } else {
+          // Restart chat by resetting remembered state
+          wipeExistingChatStateInStorage(data.typebot.id);
+          setInitialChatReply(data);
+          setInitialChatReplyInStorage(data, {
+            typebotId: data.typebot.id,
+            storage,
+          });
+        }
       } else {
-        setInitialChatReply(data)
+        setInitialChatReply(data);
         setInitialChatReplyInStorage(data, {
           typebotId: data.typebot.id,
           storage,
-        })
+        });
       }
-      props.onChatStatePersisted?.(true)
+      props.onChatStatePersisted?.(true);
     } else {
-      wipeExistingChatStateInStorage(data.typebot.id)
-      setInitialChatReply(data)
+      wipeExistingChatStateInStorage(data.typebot.id);
+      setInitialChatReply(data);
       if (data.input?.id && props.onNewInputBlock)
-        props.onNewInputBlock(data.input)
-      if (data.logs) props.onNewLogs?.(data.logs)
-      props.onChatStatePersisted?.(false)
+        props.onNewInputBlock(data.input);
+      if (data.logs) props.onNewLogs?.(data.logs);
+      props.onChatStatePersisted?.(false);
     }
 
-    setCustomCss(data.typebot.theme.customCss ?? '')
-  }
+    setCustomCss(data.typebot.theme.customCss ?? "");
+  };
 
   createEffect(() => {
-    if (isNotDefined(props.typebot) || isInitialized()) return
-    initializeBot().then()
-  })
+    if (isNotDefined(props.typebot) || isInitialized()) return;
+    initializeBot().then();
+  });
 
   createEffect(() => {
-    if (isNotDefined(props.typebot) || typeof props.typebot === 'string') return
-    setCustomCss(props.typebot.theme.customCss ?? '')
+    if (isNotDefined(props.typebot) || typeof props.typebot === "string")
+      return;
+    setCustomCss(props.typebot.theme.customCss ?? "");
     if (
       props.typebot.theme.general?.progressBar?.isEnabled &&
       initialChatReply() &&
       !initialChatReply()?.typebot.theme.general?.progressBar?.isEnabled
     ) {
-      setIsInitialized(false)
-      initializeBot().then()
+      setIsInitialized(false);
+      initializeBot().then();
     }
-  })
+  });
 
   onCleanup(() => {
-    setIsInitialized(false)
-  })
+    setIsInitialized(false);
+  });
 
   return (
     <>
@@ -197,11 +230,11 @@ export const Bot = (props: BotProps & { class?: string }) => {
               typebot: {
                 ...initialChatReply.typebot,
                 settings:
-                  typeof props.typebot === 'string'
+                  typeof props.typebot === "string"
                     ? initialChatReply.typebot?.settings
                     : props.typebot?.settings,
                 theme:
-                  typeof props.typebot === 'string'
+                  typeof props.typebot === "string"
                     ? initialChatReply.typebot?.theme
                     : props.typebot?.theme,
               },
@@ -209,7 +242,7 @@ export const Bot = (props: BotProps & { class?: string }) => {
             context={{
               apiHost: props.apiHost,
               isPreview:
-                typeof props.typebot !== 'string' || (props.isPreview ?? false),
+                typeof props.typebot !== "string" || (props.isPreview ?? false),
               resultId: initialChatReply.resultId,
               sessionId: initialChatReply.sessionId,
               typebot: initialChatReply.typebot,
@@ -217,11 +250,11 @@ export const Bot = (props: BotProps & { class?: string }) => {
                 initialChatReply.typebot.settings.general?.rememberUser
                   ?.isEnabled &&
                 !(
-                  typeof props.typebot !== 'string' ||
+                  typeof props.typebot !== "string" ||
                   (props.isPreview ?? false)
                 )
-                  ? initialChatReply.typebot.settings.general?.rememberUser
-                      ?.storage ?? defaultSettings.general.rememberUser.storage
+                  ? (initialChatReply.typebot.settings.general?.rememberUser
+                      ?.storage ?? defaultSettings.general.rememberUser.storage)
                   : undefined,
             }}
             progressBarRef={props.progressBarRef}
@@ -229,23 +262,25 @@ export const Bot = (props: BotProps & { class?: string }) => {
             onNewLogs={props.onNewLogs}
             onAnswer={props.onAnswer}
             onEnd={props.onEnd}
+            onScriptExecutionSuccess={props.onScriptExecutionSuccess}
           />
         )}
       </Show>
     </>
-  )
-}
+  );
+};
 
 type BotContentProps = {
-  initialChatReply: InitialChatReply
-  context: BotContext
-  class?: string
-  progressBarRef?: HTMLDivElement
-  onNewInputBlock?: (inputBlock: InputBlock) => void
-  onAnswer?: (answer: { message: string; blockId: string }) => void
-  onEnd?: () => void
-  onNewLogs?: (logs: OutgoingLog[]) => void
-}
+  initialChatReply: StartChatResponse;
+  context: BotContext;
+  class?: string;
+  progressBarRef?: HTMLDivElement;
+  onNewInputBlock?: (inputBlock: InputBlock) => void;
+  onAnswer?: (answer: { message: string; blockId: string }) => void;
+  onEnd?: () => void;
+  onNewLogs?: (logs: OutgoingLog[]) => void;
+  onScriptExecutionSuccess?: (message: string) => void;
+};
 
 const BotContent = (props: BotContentProps) => {
   const [progressValue, setProgressValue] = persist(
@@ -253,46 +288,47 @@ const BotContent = (props: BotContentProps) => {
     {
       storage: props.context.storage,
       key: `typebot-${props.context.typebot.id}-progressValue`,
-    }
-  )
-  let botContainer: HTMLDivElement | undefined
+    },
+  );
+  let botContainerElement: HTMLDivElement | undefined;
 
   const resizeObserver = new ResizeObserver((entries) => {
-    return setIsMobile(entries[0].target.clientWidth < 400)
-  })
+    return setIsMobile((entries[0]?.target.clientWidth ?? 0) < 400);
+  });
 
   onMount(() => {
-    if (!botContainer) return
-    resizeObserver.observe(botContainer)
-    setBotContainerHeight(`${botContainer.clientHeight}px`)
-  })
+    if (!botContainerElement) return;
+    setBotContainer(botContainerElement);
+    resizeObserver.observe(botContainerElement);
+    setBotContainerHeight(`${botContainerElement.clientHeight}px`);
+  });
 
   createEffect(() => {
     injectFont(
       props.initialChatReply.typebot.theme.general?.font ?? {
         type: defaultFontType,
         family: defaultFontFamily,
-      }
-    )
-    if (!botContainer) return
+      },
+    );
+    if (!botContainerElement) return;
     setCssVariablesValue(
       props.initialChatReply.typebot.theme,
-      botContainer,
-      props.context.isPreview
-    )
-  })
+      botContainerElement,
+      props.context.isPreview,
+    );
+  });
 
   onCleanup(() => {
-    if (!botContainer) return
-    resizeObserver.unobserve(botContainer)
-  })
+    if (!botContainerElement) return;
+    resizeObserver.unobserve(botContainerElement);
+  });
 
   return (
     <div
-      ref={botContainer}
+      ref={botContainerElement}
       class={clsx(
-        'relative flex w-full h-full text-base overflow-hidden flex-col justify-center items-center typebot-container',
-        props.class
+        "relative flex w-full h-full text-base overflow-hidden flex-col justify-center items-center typebot-container",
+        props.class,
       )}
     >
       <Show
@@ -305,7 +341,7 @@ const BotContent = (props: BotContentProps) => {
           when={
             props.progressBarRef &&
             (props.initialChatReply.typebot.theme.general?.progressBar
-              ?.position ?? defaultProgressBarPosition) === 'fixed'
+              ?.position ?? defaultProgressBarPosition) === "fixed"
           }
           fallback={<ProgressBar value={progressValue() as number} />}
         >
@@ -322,14 +358,26 @@ const BotContent = (props: BotContentProps) => {
         onEnd={props.onEnd}
         onNewLogs={props.onNewLogs}
         onProgressUpdate={setProgressValue}
+        onScriptExecutionSuccess={props.onScriptExecutionSuccess}
       />
       <Show
         when={
           props.initialChatReply.typebot.settings.general?.isBrandingEnabled
         }
       >
-        <LiteBadge botContainer={botContainer} />
+        <LiteBadge botContainer={botContainerElement} />
       </Show>
+      <Toaster toaster={toaster}>
+        {(toast) => (
+          <Toast.Root>
+            <Toast.Title>{toast().title}</Toast.Title>
+            <Toast.Description>{toast().description}</Toast.Description>
+            <Toast.CloseTrigger class="absolute right-2 top-2">
+              <CloseIcon class="w-4 h-4" />
+            </Toast.CloseTrigger>
+          </Toast.Root>
+        )}
+      </Toaster>
     </div>
-  )
-}
+  );
+};

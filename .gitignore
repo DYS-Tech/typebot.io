@@ -39,3 +39,13 @@ snapshots
 
 .env
 .typebot-build
+
+.tolgee
+
+*.tsbuildinfo
+
+.tsup
+
+.env.docker
+
+.partykit

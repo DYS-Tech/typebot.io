@@ -1,86 +1,90 @@
+import { Buttons } from "@/features/blocks/inputs/buttons/components/Buttons";
+import { MultipleChoicesForm } from "@/features/blocks/inputs/buttons/components/MultipleChoicesForm";
+import { DateForm } from "@/features/blocks/inputs/date/components/DateForm";
+import { EmailInput } from "@/features/blocks/inputs/email/components/EmailInput";
+import { FileUploadForm } from "@/features/blocks/inputs/fileUpload/components/FileUploadForm";
+import { NumberInput } from "@/features/blocks/inputs/number/components/NumberInput";
+import { PaymentForm } from "@/features/blocks/inputs/payment/components/PaymentForm";
+import { PhoneInput } from "@/features/blocks/inputs/phone/components/PhoneInput";
+import { MultiplePictureChoice } from "@/features/blocks/inputs/pictureChoice/MultiplePictureChoice";
+import { SinglePictureChoice } from "@/features/blocks/inputs/pictureChoice/SinglePictureChoice";
+import { RatingForm } from "@/features/blocks/inputs/rating/components/RatingForm";
+import { TextInput } from "@/features/blocks/inputs/textInput/components/TextInput";
+import { UrlInput } from "@/features/blocks/inputs/url/components/UrlInput";
+import type { BotContext, InputSubmitContent } from "@/types";
+import { formattedMessages } from "@/utils/formattedMessagesSignal";
+import { isMobile } from "@/utils/isMobileSignal";
+import { persist } from "@/utils/persist";
+import type { ChoiceInputBlock } from "@typebot.io/blocks-inputs/choice/schema";
+import { InputBlockType } from "@typebot.io/blocks-inputs/constants";
+import type { DateInputBlock } from "@typebot.io/blocks-inputs/date/schema";
+import type { EmailInputBlock } from "@typebot.io/blocks-inputs/email/schema";
+import type { FileInputBlock } from "@typebot.io/blocks-inputs/file/schema";
+import type { NumberInputBlock } from "@typebot.io/blocks-inputs/number/schema";
+import { defaultPaymentInputOptions } from "@typebot.io/blocks-inputs/payment/constants";
+import type { PaymentInputBlock } from "@typebot.io/blocks-inputs/payment/schema";
+import type { PhoneNumberInputBlock } from "@typebot.io/blocks-inputs/phone/schema";
+import type { PictureChoiceBlock } from "@typebot.io/blocks-inputs/pictureChoice/schema";
+import type { RatingInputBlock } from "@typebot.io/blocks-inputs/rating/schema";
+import type { TextInputBlock } from "@typebot.io/blocks-inputs/text/schema";
+import type { UrlInputBlock } from "@typebot.io/blocks-inputs/url/schema";
 import type {
   ContinueChatResponse,
-  ChoiceInputBlock,
-  EmailInputBlock,
-  FileInputBlock,
-  NumberInputBlock,
-  PhoneNumberInputBlock,
-  RatingInputBlock,
   RuntimeOptions,
-  TextInputBlock,
-  Theme,
-  UrlInputBlock,
-  PictureChoiceBlock,
-  PaymentInputBlock,
-  DateInputBlock,
-} from '@typebot.io/schemas'
-import { GuestBubble } from './bubbles/GuestBubble'
-import { BotContext, InputSubmitContent } from '@/types'
-import { TextInput } from '@/features/blocks/inputs/textInput'
-import { NumberInput } from '@/features/blocks/inputs/number'
-import { EmailInput } from '@/features/blocks/inputs/email'
-import { UrlInput } from '@/features/blocks/inputs/url'
-import { PhoneInput } from '@/features/blocks/inputs/phone'
-import { DateForm } from '@/features/blocks/inputs/date'
-import { RatingForm } from '@/features/blocks/inputs/rating'
-import { FileUploadForm } from '@/features/blocks/inputs/fileUpload'
-import { createSignal, Switch, Match, createEffect, Show } from 'solid-js'
-import { isNotDefined } from '@typebot.io/lib'
-import { isMobile } from '@/utils/isMobileSignal'
-import { PaymentForm } from '@/features/blocks/inputs/payment'
-import { MultipleChoicesForm } from '@/features/blocks/inputs/buttons/components/MultipleChoicesForm'
-import { Buttons } from '@/features/blocks/inputs/buttons/components/Buttons'
-import { SinglePictureChoice } from '@/features/blocks/inputs/pictureChoice/SinglePictureChoice'
-import { MultiplePictureChoice } from '@/features/blocks/inputs/pictureChoice/MultiplePictureChoice'
-import { formattedMessages } from '@/utils/formattedMessagesSignal'
-import { InputBlockType } from '@typebot.io/schemas/features/blocks/inputs/constants'
-import { defaultPaymentInputOptions } from '@typebot.io/schemas/features/blocks/inputs/payment/constants'
-import { persist } from '@/utils/persist'
-import { defaultGuestAvatarIsEnabled } from '@typebot.io/schemas/features/typebot/theme/constants'
+} from "@typebot.io/bot-engine/schemas/api";
+import { isNotDefined } from "@typebot.io/lib/utils";
+import { defaultGuestAvatarIsEnabled } from "@typebot.io/theme/constants";
+import type { Theme } from "@typebot.io/theme/schemas";
+import { Match, Show, Switch, createEffect, createSignal } from "solid-js";
+import { GuestBubble } from "./bubbles/GuestBubble";
 
 type Props = {
-  ref: HTMLDivElement | undefined
-  block: NonNullable<ContinueChatResponse['input']>
-  hasHostAvatar: boolean
-  guestAvatar?: NonNullable<Theme['chat']>['guestAvatar']
-  chunkIndex: number
-  context: BotContext
-  isInputPrefillEnabled: boolean
-  hasError: boolean
-  onTransitionEnd: () => void
-  onSubmit: (answer: string) => void
-  onSkip: () => void
-}
+  ref: HTMLDivElement | undefined;
+  block: NonNullable<ContinueChatResponse["input"]>;
+  hasHostAvatar: boolean;
+  guestAvatar?: NonNullable<Theme["chat"]>["guestAvatar"];
+  chunkIndex: number;
+  context: BotContext;
+  isInputPrefillEnabled: boolean;
+  hasError: boolean;
+  onTransitionEnd: () => void;
+  onSubmit: (content: InputSubmitContent) => void;
+  onSkip: () => void;
+};
 
 export const InputChatBlock = (props: Props) => {
-  const [answer, setAnswer] = persist(createSignal<string>(), {
+  const [answer, setAnswer] = persist(createSignal<InputSubmitContent>(), {
     key: `typebot-${props.context.typebot.id}-input-${props.chunkIndex}`,
     storage: props.context.storage,
-  })
-  const [formattedMessage, setFormattedMessage] = createSignal<string>()
+  });
 
-  const handleSubmit = async ({ label, value }: InputSubmitContent) => {
-    setAnswer(label ?? value)
-    props.onSubmit(value ?? label)
-  }
+  const handleSubmit = async (content: InputSubmitContent) => {
+    setAnswer(content);
+    props.onSubmit(content);
+  };
 
   const handleSkip = (label: string) => {
-    setAnswer(label)
-    props.onSkip()
-  }
+    setAnswer({ type: "text", value: label });
+    props.onSkip();
+  };
 
   createEffect(() => {
     const formattedMessage = formattedMessages().findLast(
-      (message) => props.chunkIndex === message.inputIndex
-    )?.formattedMessage
-    if (formattedMessage) setFormattedMessage(formattedMessage)
-  })
+      (message) => props.chunkIndex === message.inputIndex,
+    )?.formattedMessage;
+    if (formattedMessage && props.block.type !== InputBlockType.FILE)
+      setAnswer((answer) =>
+        answer?.type === "text"
+          ? { ...answer, label: formattedMessage }
+          : answer,
+      );
+  });
 
   return (
     <Switch>
       <Match when={answer() && !props.hasError}>
         <GuestBubble
-          message={formattedMessage() ?? (answer() as string)}
+          answer={answer()}
           showAvatar={
             props.guestAvatar?.isEnabled ?? defaultGuestAvatarIsEnabled
           }
@@ -97,8 +101,8 @@ export const InputChatBlock = (props: Props) => {
           <Show when={props.hasHostAvatar}>
             <div
               class={
-                'flex flex-shrink-0 items-center ' +
-                (isMobile() ? 'w-6 h-6' : 'w-10 h-10')
+                "flex flex-shrink-0 items-center " +
+                (isMobile() ? "w-6 h-6" : "w-10 h-10")
               }
             />
           </Show>
@@ -107,7 +111,9 @@ export const InputChatBlock = (props: Props) => {
             block={props.block}
             chunkIndex={props.chunkIndex}
             isInputPrefillEnabled={props.isInputPrefillEnabled}
-            existingAnswer={props.hasError ? answer() : undefined}
+            existingAnswer={
+              props.hasError ? getAnswerValue(answer()!) : undefined
+            }
             onTransitionEnd={props.onTransitionEnd}
             onSubmit={handleSubmit}
             onSkip={handleSkip}
@@ -115,31 +121,37 @@ export const InputChatBlock = (props: Props) => {
         </div>
       </Match>
     </Switch>
-  )
-}
+  );
+};
+
+const getAnswerValue = (answer?: InputSubmitContent) => {
+  if (!answer) return;
+  return answer.type === "text" ? answer.value : answer.url;
+};
 
 const Input = (props: {
-  context: BotContext
-  block: NonNullable<ContinueChatResponse['input']>
-  chunkIndex: number
-  isInputPrefillEnabled: boolean
-  existingAnswer?: string
-  onTransitionEnd: () => void
-  onSubmit: (answer: InputSubmitContent) => void
-  onSkip: (label: string) => void
+  context: BotContext;
+  block: NonNullable<ContinueChatResponse["input"]>;
+  chunkIndex: number;
+  isInputPrefillEnabled: boolean;
+  existingAnswer?: string;
+  onTransitionEnd: () => void;
+  onSubmit: (answer: InputSubmitContent) => void;
+  onSkip: (label: string) => void;
 }) => {
-  const onSubmit = (answer: InputSubmitContent) => props.onSubmit(answer)
+  const onSubmit = (answer: InputSubmitContent) => props.onSubmit(answer);
 
   const getPrefilledValue = () =>
     props.existingAnswer ??
-    (props.isInputPrefillEnabled ? props.block.prefilledValue : undefined)
+    (props.isInputPrefillEnabled ? props.block.prefilledValue : undefined);
 
   const submitPaymentSuccess = () =>
     props.onSubmit({
+      type: "text",
       value:
-        (props.block.options as PaymentInputBlock['options'])?.labels
+        (props.block.options as PaymentInputBlock["options"])?.labels
           ?.success ?? defaultPaymentInputOptions.labels.success,
-    })
+    });
 
   return (
     <Switch>
@@ -147,6 +159,7 @@ const Input = (props: {
         <TextInput
           block={props.block as TextInputBlock}
           defaultValue={getPrefilledValue()}
+          context={props.context}
           onSubmit={onSubmit}
         />
       </Match>
@@ -183,7 +196,7 @@ const Input = (props: {
       </Match>
       <Match when={props.block.type === InputBlockType.DATE}>
         <DateForm
-          options={props.block.options as DateInputBlock['options']}
+          options={props.block.options as DateInputBlock["options"]}
           defaultValue={getPrefilledValue()}
           onSubmit={onSubmit}
         />
@@ -253,22 +266,22 @@ const Input = (props: {
             {
               ...props.block.options,
               ...props.block.runtimeOptions,
-            } as PaymentInputBlock['options'] & RuntimeOptions
+            } as PaymentInputBlock["options"] & RuntimeOptions
           }
           onSuccess={submitPaymentSuccess}
           onTransitionEnd={props.onTransitionEnd}
         />
       </Match>
     </Switch>
-  )
-}
+  );
+};
 
 const isButtonsBlock = (
-  block: ContinueChatResponse['input']
+  block: ContinueChatResponse["input"],
 ): ChoiceInputBlock | undefined =>
-  block?.type === InputBlockType.CHOICE ? block : undefined
+  block?.type === InputBlockType.CHOICE ? block : undefined;
 
 const isPictureChoiceBlock = (
-  block: ContinueChatResponse['input']
+  block: ContinueChatResponse["input"],
 ): PictureChoiceBlock | undefined =>
-  block?.type === InputBlockType.PICTURE_CHOICE ? block : undefined
+  block?.type === InputBlockType.PICTURE_CHOICE ? block : undefined;

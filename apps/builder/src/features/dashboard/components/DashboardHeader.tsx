@@ -1,24 +1,31 @@
-import React from 'react'
-import { HStack, Flex, Button, useDisclosure } from '@chakra-ui/react'
-import { HardDriveIcon, SettingsIcon } from '@/components/icons'
-import { useUser } from '@/features/account/hooks/useUser'
-import { isNotDefined } from '@typebot.io/lib'
-import Link from 'next/link'
-import { EmojiOrImageIcon } from '@/components/EmojiOrImageIcon'
-import { useTranslate } from '@tolgee/react'
-import { useWorkspace } from '@/features/workspace/WorkspaceProvider'
-import { WorkspaceDropdown } from '@/features/workspace/components/WorkspaceDropdown'
-import { WorkspaceSettingsModal } from '@/features/workspace/components/WorkspaceSettingsModal'
+import { EmojiOrImageIcon } from "@/components/EmojiOrImageIcon";
+import { HardDriveIcon, SettingsIcon } from "@/components/icons";
+import { useUser } from "@/features/account/hooks/useUser";
+import { ParentModalProvider } from "@/features/graph/providers/ParentModalProvider";
+import { useWorkspace } from "@/features/workspace/WorkspaceProvider";
+import { WorkspaceDropdown } from "@/features/workspace/components/WorkspaceDropdown";
+import { WorkspaceSettingsModal } from "@/features/workspace/components/WorkspaceSettingsModal";
+import { Button, Flex, HStack, useDisclosure } from "@chakra-ui/react";
+import { useTranslate } from "@tolgee/react";
+import { isNotDefined } from "@typebot.io/lib/utils";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import React from "react";
 
 export const DashboardHeader = () => {
-  const { t } = useTranslate()
-  const { user, logOut } = useUser()
-  const { workspace, switchWorkspace, createWorkspace } = useWorkspace()
+  const { t } = useTranslate();
+  const { user, logOut } = useUser();
+  const { workspace, switchWorkspace, createWorkspace } = useWorkspace();
+  const { asPath } = useRouter();
 
-  const { isOpen, onOpen, onClose } = useDisclosure()
+  const isRedirectFromCredentialsCreation = asPath.includes("credentials");
+
+  const { isOpen, onOpen, onClose } = useDisclosure({
+    defaultIsOpen: isRedirectFromCredentialsCreation,
+  });
 
   const handleCreateNewWorkspace = () =>
-    createWorkspace(user?.name ?? undefined)
+    createWorkspace(user?.name ?? undefined);
 
   return (
     <Flex w="full" borderBottomWidth="1px" justify="center">
@@ -38,12 +45,17 @@ export const DashboardHeader = () => {
         </Link>
         <HStack>
           {user && workspace && !workspace.isPastDue && (
-            <WorkspaceSettingsModal
-              isOpen={isOpen}
-              onClose={onClose}
-              user={user}
-              workspace={workspace}
-            />
+            <ParentModalProvider>
+              <WorkspaceSettingsModal
+                isOpen={isOpen}
+                onClose={onClose}
+                user={user}
+                workspace={workspace}
+                defaultTab={
+                  isRedirectFromCredentialsCreation ? "credentials" : undefined
+                }
+              />
+            </ParentModalProvider>
           )}
           {!workspace?.isPastDue && (
             <Button
@@ -51,7 +63,7 @@ export const DashboardHeader = () => {
               onClick={onOpen}
               isLoading={isNotDefined(workspace)}
             >
-              {t('dashboard.header.settingsButton.label')}
+              {t("dashboard.header.settingsButton.label")}
             </Button>
           )}
           <WorkspaceDropdown
@@ -63,5 +75,5 @@ export const DashboardHeader = () => {
         </HStack>
       </Flex>
     </Flex>
-  )
-}
+  );
+};

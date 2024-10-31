@@ -1,13 +1,13 @@
 {
   "name": "@typebot.io/wordpress",
-  "version": "3.6.0",
+  "version": "4.0.0",
   "main": "index.js",
   "repository": "https://github.com/baptisteArno/typebot.io",
   "author": "baptisteArno",
-  "license": "AGPL-3.0-or-later",
+  "license": "FSL-1.1-ALv2",
   "scripts": {
-    "deploy": "pnpm copy && pnpm commit",
-    "copy": "svn copy ./trunk ./tags/3.6.0",
-    "commit": "svn ci -m 'Add lib_version attr in admin panel'"
+    "deploy": "bun copy && bun commit",
+    "copy": "svn copy ./trunk ./tags/4.0.0",
+    "commit": "svn ci -m 'Use embed v0.3 by default'"
   }
 }

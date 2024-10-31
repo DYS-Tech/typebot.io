@@ -106,7 +106,8 @@
                 "editor/blocks/logic/typebot-link",
                 "editor/blocks/logic/wait",
                 "editor/blocks/logic/jump",
-                "editor/blocks/logic/ab-test"
+                "editor/blocks/logic/ab-test",
+                "editor/blocks/logic/webhook"
               ]
             },
             {
@@ -114,7 +115,7 @@
               "pages": [
                 "editor/blocks/integrations/google-sheets",
                 "editor/blocks/integrations/google-analytics",
-                "editor/blocks/integrations/webhook",
+                "editor/blocks/integrations/http-request",
                 "editor/blocks/integrations/send-email",
                 "editor/blocks/integrations/zapier",
                 "editor/blocks/integrations/make-com",
@@ -122,12 +123,13 @@
                 "editor/blocks/integrations/chatwoot",
                 "editor/blocks/integrations/meta-pixel",
                 "editor/blocks/integrations/openai",
-                "editor/blocks/integrations/zemantic-ai",
                 "editor/blocks/integrations/mistral",
                 "editor/blocks/integrations/elevenlabs",
                 "editor/blocks/integrations/anthropic",
                 "editor/blocks/integrations/dify-ai",
-                "editor/blocks/integrations/nocodb"
+                "editor/blocks/integrations/nocodb",
+                "editor/blocks/integrations/segment",
+                "editor/blocks/integrations/zendesk"
               ]
             }
           ]
@@ -177,6 +179,11 @@
             "deploy/whatsapp/overview",
             "deploy/whatsapp/create-meta-app"
           ]
+        },
+        {
+          "group": "API",
+          "icon": "code-simple",
+          "pages": ["deploy/api/overview"]
         }
       ]
     },
@@ -200,7 +207,9 @@
         "guides/mailer-lite",
         "guides/multi-avatars",
         "guides/rtl",
-        "guides/utm-in-results"
+        "guides/utm-in-results",
+        "guides/how-to-create-loops",
+        "guides/how-to-split-ai-messages-in-multi-blocks"
       ]
     },
     {
@@ -226,6 +235,10 @@
     {
       "group": "Guides",
       "pages": ["self-hosting/guides/s3", "self-hosting/guides/planetscale"]
+    },
+    {
+      "group": "Misc",
+      "pages": ["self-hosting/breaking-changes"]
     },
     {
       "group": "Get started",
@@ -265,6 +278,7 @@
         "api-reference/chat/start-preview-chat",
         "api-reference/chat/continue-chat",
         "api-reference/chat/save-logs",
+        "api-reference/chat/generate-upload-url",
         "api-reference/chat/update-typebot-in-session"
       ]
     },
@@ -329,5 +343,11 @@
     "discord": "https://typebot.io/discord",
     "twitter": "https://twitter.com/Typebot_io",
     "github": "https://github.com/baptisteArno/typebot.io"
-  }
+  },
+  "redirects": [
+    {
+      "source": "/editor/blocks/integrations/webhook",
+      "destination": "/editor/blocks/integrations/http-request"
+    }
+  ]
 }
